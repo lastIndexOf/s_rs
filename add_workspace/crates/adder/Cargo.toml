@@ -1,0 +1,12 @@
+[package]
+name = "adder-zfk-rs"
+version = "0.1.1"
+edition = "2021"
+description = "A add one function crate by zfk"
+license = "MIT"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+add_one-zfk-rs = { path = "../add_one" }
+rand = "0.8.5"
