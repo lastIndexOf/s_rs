@@ -24,6 +24,17 @@ fn main() {
     let x = 10;
 
     test_pointer(x);
+
+    let num = 1;
+    let num_copy = num;
+
+    let string = "hello".to_string();
+    let string_copy = string;
+
+    println!(
+        "num = {}, num_copy = {} string = {string_copy}",
+        num, num_copy
+    );
 }
 
 fn test_pointer(x: i32) {

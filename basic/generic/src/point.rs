@@ -15,8 +15,9 @@ impl Point<f32, f32> {}
 impl<T: Display> Point<T, f32> {}
 
 impl Transform for Point<f32, f32> {
-    fn translate(&mut self, x: f32, y: f32) {
-        (*self).x += &x;
+    fn translate(self: &mut Self, x: f32, y: f32) {
+        // let a = *self;
+        (*self).x += x;
     }
 }
 
