@@ -1,15 +1,19 @@
 #![allow(unused_must_use)]
 #![allow(unused)]
+// #![feature(dropck_eyepatch)]
 
 use std::{
     borrow::Borrow,
+    collections::HashMap,
+    hash::Hash,
     io::{BufRead, Read, Seek, Write},
     num::{IntErrorKind, ParseIntError},
-    ops::{Add, Deref, Div},
+    ops::{Add, Deref, Div, Index, IndexMut},
+    rc::Rc,
+    slice::from_raw_parts,
 };
 
 fn main() {
-    s_ptr();
     s_array();
     s_ascii();
     s_borrow();
@@ -30,9 +34,13 @@ fn main() {
     s_os();
     s_path();
     s_process();
+    s_ptr();
+    s_rc();
+    s_slice();
 
     // 死灵书
-    s_repr();
+    // s_repr();
+    s_lifetime();
 }
 
 fn s_ptr() {
@@ -46,7 +54,156 @@ fn s_ptr() {
         std::mem::size_of::<*mut u128>()
     );
 
+    println!("bool size is {}", std::mem::size_of::<bool>(),);
+
     println!("type {{u8}} size is {}", std::mem::size_of::<u8>());
+
+    // std::mem::transmute(src)
+    #[repr(packed)]
+    struct Packed {
+        f1: u8,
+        f2: u16,
+    }
+
+    let packed = Packed { f1: 1, f2: 2 };
+    // `&packed.f2` would create an unaligned reference, and thus be Undefined Behavior!
+    let raw_f2 = std::ptr::addr_of!(packed.f2);
+    assert_eq!(unsafe { raw_f2.read_unaligned() }, 2);
+
+    let mut dangling = std::ptr::NonNull::<i32>::dangling();
+    dangling = std::ptr::NonNull::new(&mut 100_i32 as *mut i32).unwrap();
+
+    println!("dangling = {}", unsafe { *dangling.as_ptr() });
+
+    let mut non_null = std::ptr::NonNull::new(&mut 100_i32 as *mut i32).unwrap();
+
+    let non_null_ref = unsafe { non_null.as_ref() };
+    let non_null_mut = unsafe { non_null.as_mut() };
+    let non_null_ptr = non_null.as_ptr();
+
+    let cast_non_null = non_null.cast::<i16>();
+
+    let i32_data = vec![32_i32; 10];
+    let mut dest = Vec::<i32>::with_capacity(10);
+
+    unsafe {
+        std::ptr::copy(i32_data.as_ptr(), dest.as_mut_ptr(), 10);
+        dest.set_len(10);
+    };
+
+    println!("after std::ptr::copy, origin data = {i32_data:?}, dest = {dest:?}");
+
+    let mut arr = vec![100_i32; 5];
+
+    println!(
+        "&arr = {:p}, *const Vec<i32> = {:p}",
+        &arr, &arr as *const _
+    );
+    unsafe {
+        let a = std::ptr::read(&arr);
+        println!("read *const Vec<i32> = {:?}", a);
+        // a 会获得所有权，离开作用域的时候会被销毁
+        // 防止 a 离开 unsafe 作用域后就被 drop，导致 arr 内存上的值被销毁
+        std::ptr::write(&mut arr, vec![101_i32; 5]);
+    }
+
+    println!("arr = {:?}", arr);
+
+    let arr = 32_i32;
+    unsafe {
+        let a = std::ptr::read(&arr);
+        println!("this a = {a}");
+    }
+
+    println!("after unsafe arr = {arr}");
+
+    let arr = vec![1, 2, 3, 4, 5, 6];
+    let ptr = unsafe { std::ptr::slice_from_raw_parts(arr.as_ptr().add(3), 4) };
+    println!("*ptr = {:?}", unsafe { &*ptr });
+
+    let mut arr = [1, 2, 3, 4];
+
+    // 不重叠区域 swap
+    // unsafe {
+    //     std::ptr::swap(
+    //         arr.as_mut_ptr().cast::<[i32; 2]>(),
+    //         arr.as_mut_ptr().add(2).cast::<[i32; 2]>(),
+    //     );
+    // }
+
+    // 重叠区域 swap
+    // unsafe {
+    //     std::ptr::swap(
+    //         arr.as_mut_ptr().cast::<[i32; 3]>(),
+    //         arr.as_mut_ptr().add(1).cast::<[i32; 3]>(),
+    //     );
+    // }
+
+    // 三种方式
+    unsafe {
+        let a = &mut arr[..3] as *mut [i32] as *mut [i32; 3];
+        std::ptr::swap(
+            (&mut arr[..3] as *mut [i32] as *mut [i32; 3]),
+            (&mut arr[1..] as *mut [i32] as *mut [i32; 3]),
+        );
+    }
+
+    println!("after swap arr = {arr:?}");
+
+    println!(
+        "&arr = {:p}, &arr[..3] = {:p}, &arr[1..] = {:p}",
+        &arr,
+        &arr[..3],
+        &arr[1..]
+    );
+}
+
+fn s_rc() {
+    let rc_str = Rc::new(String::new());
+    let rc_cloned = Rc::clone(&rc_str);
+    let rc_weak = Rc::downgrade(&rc_cloned);
+
+    println!("strong count = {}", Rc::strong_count(&rc_cloned));
+    println!("weak count = {}", Rc::weak_count(&rc_str));
+
+    drop(rc_str);
+
+    println!("strong count = {}", Rc::strong_count(&rc_cloned));
+    println!("weak count = {}", Rc::weak_count(&rc_cloned));
+    println!("weak count = {}", rc_weak.weak_count());
+
+    let refed = rc_weak.upgrade().unwrap();
+    println!("strong count = {}", Rc::strong_count(&refed));
+    println!("weak count = {}", Rc::weak_count(&rc_cloned));
+
+    drop(rc_cloned);
+
+    println!("weak count = {}", rc_weak.weak_count());
+
+    let a = std::cell::RefCell::new(String::from("hello"));
+
+    {
+        let mut b = a.borrow_mut();
+        b.push_str(" world");
+    }
+
+    println!("a = {}", a.borrow());
+
+    let a = std::cell::Cell::new(32);
+    a.set(32);
+
+    println!("a = {}", a.get());
+}
+
+fn s_slice() {
+    struct MyStruct {
+        arr: Vec<String>,
+    }
+
+    let mut my_struct = MyStruct { arr: vec![] };
+    let my_struct_ref = &my_struct;
+
+    let arr = &my_struct_ref.arr;
 }
 
 fn s_array() {
@@ -597,7 +754,7 @@ fn s_mem() {
         ptr
     };
 
-    (*ptr).extend("with extend".chars());
+    ptr.extend("with extend".chars());
     println!("ptr = {}", *ptr);
 
     unsafe {
@@ -783,8 +940,259 @@ fn s_path() {
     println!("without_app_dir = {without_app_dir:?}, pth = {pth:?}",);
 }
 
-fn s_process() {}
+fn s_process() {
+    let echo_cmd = std::process::Command::new("echo")
+        .arg("Oh no, a tpyo!")
+        .stdout(std::process::Stdio::piped())
+        .spawn()
+        .unwrap();
 
-fn s_repr() {
-    
+    let sed_cmd = std::process::Command::new("sed")
+        .arg("s/tpyo/typo/")
+        .stdin(std::process::Stdio::from(echo_cmd.stdout.unwrap()))
+        .stdout(std::process::Stdio::inherit())
+        .spawn()
+        .unwrap();
+
+    print!("$echo something || sed = ",);
+    sed_cmd.wait_with_output().unwrap();
+    println!("");
+
+    let mut cat_cmd = std::process::Command::new("cat")
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .spawn()
+        .unwrap();
+
+    let mut cat_cmd_stdin = cat_cmd.stdin.take().unwrap();
+    std::thread::spawn(move || {
+        cat_cmd_stdin.write_all("Hello World".as_bytes()).unwrap();
+    });
+
+    println!(
+        "$cat = {:?}",
+        String::from_utf8(
+            cat_cmd
+                .wait_with_output()
+                .unwrap()
+                .stdout
+                .as_slice()
+                .to_vec()
+        )
+        .unwrap()
+    );
+
+    let mut ls_cmd = std::process::Command::new("ls");
+
+    let envs = std::env::vars().collect::<Vec<(String, String)>>();
+
+    let current_dir_ls = ls_cmd.status().expect("ls execute Error");
+    let current_dir_ls_output =
+        String::from_utf8(ls_cmd.output().unwrap().stdout.as_slice().to_vec());
+    let root_dir_ls_output = String::from_utf8(
+        ls_cmd
+            .current_dir("/")
+            .arg("-l")
+            .env_clear()
+            .envs(envs)
+            .env_remove("NODE_ENV")
+            // .args(["-l", "-l"])
+            // .env("NODE_ENV", "production")
+            // .current_dir("/")
+            .output()
+            .unwrap()
+            .stdout
+            .as_slice()
+            .to_vec(),
+    );
+
+    std::io::stdout().write_all("this is stdout: \n".as_bytes());
+    std::io::stdout().write_all(&ls_cmd.arg("-l").output().unwrap().stdout);
+
+    // std::process::Stdio::inherit()
+    println!("current_dir_ls = {}", current_dir_ls);
+    println!("current_dir_ls_output = {:?}", current_dir_ls_output);
+    println!("root_dir_ls_output = {:?}", root_dir_ls_output);
+
+    println!("inherit stdout will console: ");
+    std::process::Command::new("ls")
+        .arg("-l")
+        .stdout(std::process::Stdio::inherit())
+        .output()
+        .unwrap();
+
+    println!("spawn default stdout will is: ");
+    std::process::Command::new("ls")
+        .arg("-l")
+        // .stdout(std::process::Stdio::piped())
+        .spawn()
+        .unwrap()
+        .wait_with_output()
+        .unwrap();
+
+    // std::process::exit(0);
+    // std::process::exit(1);
+    // std::process::abort();
+
+    println!("My pid is {}", std::process::id());
+}
+
+// fn s_repr() {}
+
+fn s_lifetime() {
+    // let mut data = vec![1, 2, 3];
+    // let x = &data[0];
+    // data.push(4);
+    // println!("{}", x);
+    let mut data = vec![1, 2, 3];
+    // x 是可变的（通过 mut 声明），因此我们可以修改 x 指向的内容
+    let mut x = &data[0];
+
+    println!("{}", x); // 最后一次使用这个引用
+    data.push(4);
+    x = &data[3]; // x 在这里借用了新的变量
+    println!("{}", x);
+
+    fn get_default<'m, K, V>(map: &'m mut HashMap<K, V>, key: K) -> &'m mut V
+    where
+        K: Clone + Eq + Hash,
+        V: Default,
+    {
+        // match map.get_mut(&key) {
+        //     Some(value) => value,
+        //     None => {
+        //         map.insert(key.clone(), V::default());
+        //         map.get_mut(&key).unwrap()
+        //     }
+        // }
+        map.entry(key).or_insert(V::default())
+    }
+
+    // Error
+    // struct Inspector<'a>(&'a u8, &'static str);
+
+    // impl<'a> Drop for Inspector<'a> {
+    //     fn drop(&mut self) {
+    //         println!("Inspector(_, {}) knows when *not* to inspect.", self.1);
+    //     }
+    // }
+
+    // struct World<'a> {
+    //     inspector: Option<Inspector<'a>>,
+    //     days: Box<u8>,
+    // }
+
+    // let mut world = World {
+    //     inspector: None,
+    //     days: Box::new(1),
+    // };
+    // world.inspector = Some(Inspector(&world.days, "gadget"));
+    // 假设 `days` 刚好在这里析构了，
+    // 并且假设析构函数可以确保：该函数确保不会访问对 `days` 的引用
+    // let a = &world.days;
+
+    // fn test(a: &u8) {}
+
+    // test(&world.days);
+
+    // 上述错误的一种解决方案
+    struct Inspector<'a>(*mut u8, &'static str, std::marker::PhantomData<&'a u8>);
+
+    impl<'a> Drop for Inspector<'a> {
+        fn drop(&mut self) {
+            println!("Inspector(_, {}) knows when *not* to inspect.", self.1);
+
+            // unsafe {
+            //     println!("*self.0 = {}", *self.0);
+            //     let _ = Box::from_raw(self.0);
+            // };
+            // unsafe {
+            //     println!("*self.0 = {}", *self.0);
+            // };
+
+            // let ptr = Box::into_raw(Box::new(String::from("Hello")));
+            let ptr = Box::into_raw(Box::new(8));
+            unsafe {
+                println!("*ptr = {}", *ptr);
+                let _ = Box::from_raw(ptr);
+            };
+            unsafe {
+                println!("*ptr = {}", *ptr);
+            };
+        }
+    }
+    struct World<'a> {
+        inspector: Option<Inspector<'a>>,
+        days: Box<u8>,
+    }
+
+    let mut world = World {
+        inspector: None,
+        days: Box::new(1),
+    };
+    world.inspector = Some(Inspector(
+        &mut *world.days,
+        "gadget",
+        std::marker::PhantomData,
+    ));
+
+    struct Foo {
+        a: i32,
+        b: i32,
+        c: i32,
+    }
+
+    let mut x = Foo { a: 0, b: 0, c: 0 };
+    let a = &mut x.a;
+    let b = &mut x.b;
+    let c = &x.c;
+    *b += 1;
+    let c2 = &x.c;
+    *a += 10;
+    println!("{} {} {} {}", a, b, c, c2);
+
+    let mut x = [1, 2, 3];
+    // let a = x.index_mut(0);
+    let a = &mut x[0];
+    // let b = x.index_mut(1);
+    let b = &mut x[1];
+    // println!("{} {}", a, b);
+
+    let a = 32_i32;
+
+    // 这两个地址是不同的，类型转化其实改变了布局
+    println!("a.ptr = {:p}", &a);
+    println!("a as i64 .ptr = {:p}", &(a as i64));
+
+    fn create_temp_i32<'a>() -> &'a i32 {
+        &12_i32
+    }
+
+    let a = create_temp_i32();
+
+    println!("a = {:p}, *a = {}", a, *a);
+
+    trait Trait {}
+
+    fn foo<X: Trait>(t: X) {}
+
+    impl<'a> Trait for &'a i32 {}
+
+    let t: &mut i32 = &mut 0;
+    foo(&*t);
+
+    fn do_stuff<T: Clone>(value: &T) {
+        let cloned = value.clone();
+    }
+    fn do_stuff_2<T>(value: &T) {
+        let cloned = value.clone();
+    }
+
+    #[derive(Clone)]
+    struct Container<T>(std::sync::Arc<T>);
+
+    fn clone_containers<T>(foo: &Container<i32>, bar: &Container<T>) {
+        let foo_cloned = foo.clone();
+        let bar_cloned = bar.clone();
+    }
 }
