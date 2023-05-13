@@ -2,13 +2,20 @@
 #![allow(unused)]
 // #![feature(dropck_eyepatch)]
 
+const CONST_I32: i32 = 32_i32;
+static mut STATIC_I32: i32 = 32_i32;
+
 use std::{
+    alloc::Layout,
     borrow::Borrow,
+    cell::RefCell,
     collections::HashMap,
     hash::Hash,
     io::{BufRead, Read, Seek, Write},
     num::{IntErrorKind, ParseIntError},
     ops::{Add, Deref, Div, Index, IndexMut},
+    println,
+    ptr::NonNull,
     rc::Rc,
     slice::from_raw_parts,
 };
@@ -37,10 +44,13 @@ fn main() {
     s_ptr();
     s_rc();
     s_slice();
+    s_string();
+    s_sync();
 
     // 死灵书
     // s_repr();
     s_lifetime();
+    s_impl_vec();
 }
 
 fn s_ptr() {
@@ -204,6 +214,210 @@ fn s_slice() {
     let my_struct_ref = &my_struct;
 
     let arr = &my_struct_ref.arr;
+
+    let from_mut = std::slice::from_mut(&mut String::from("hello"));
+    let from_ref = std::slice::from_ref(&String::from(" world"));
+
+    let a = vec![1, 2, 3, 4, 5];
+    let a = unsafe { std::slice::from_raw_parts(a.as_ptr().cast::<i16>().add(2), 4) };
+
+    println!("a = {a:?}");
+
+    let smile_utf8 = Box::new([226, 152, 186]);
+    // let smile = unsafe { std::str::from_boxed_utf8_unchecked(smile_utf8) };
+    let smile = std::str::from_utf8(&*smile_utf8);
+
+    assert_eq!("☺", smile.unwrap());
+}
+
+fn s_string() {
+    let s = String::from("H💖");
+
+    println!("s.len = {}", s.len());
+
+    println!("&s[1..] = {}", &s[1..]);
+
+    // 报错，因为 💖 4个字节
+    // println!("&s[2..] = {}", &s[2..]);
+
+    let arr = [0; 10];
+    let vector = vec![String::from("2"); 10];
+    let string = String::from("H");
+
+    let [first, ..] = arr;
+    // let [first, ..] = vector; // Error
+    // let [first, ..] = &arr[..]; // Error
+    let first = arr[0];
+    let first = &vector[0];
+    let first = string.chars().nth(0).unwrap();
+
+    match &vector[..] {
+        [first, ..] if first != &String::from("2") => {
+            println!("first = {}", first);
+        }
+        _ => {}
+    }
+
+    #[derive(Debug)]
+    struct Foo {
+        name: String,
+        age: u8,
+    }
+
+    let mut foo = Some(Foo {
+        name: "zfk".to_string(),
+        age: 26,
+    });
+
+    match foo.as_mut() {
+        Some(x) if x.age == 26 => {
+            println!("{x:?}'s age eq 26");
+            x.age += 1;
+        }
+        _ => {}
+    }
+
+    println!("after age + 1 = {}", foo.as_ref().unwrap().age);
+
+    if let Some(x @ Foo { name, .. }) = foo.as_ref() {}
+
+    match &vector[..] {
+        [first, rest @ ..] => {
+            println!("first = {first}, rest = {rest:?}");
+        }
+        _ => {}
+    }
+
+    let a = String::from("H").into_bytes();
+    let a = String::from("H").as_bytes().to_vec();
+
+    let a = Box::new(5);
+    // 深拷贝
+    let b = a.clone();
+
+    println!("a addr = {:p}, b addr = {:p}", &*a, &*b);
+
+    let input = b"Hello \xF0\x90\x80World";
+    let output = String::from_utf8_lossy(input);
+
+    println!("output = {output}");
+
+    let s = "Hello World".to_string();
+    // std::mem::ManuallyDrop 包装后不会自动销毁内存，而是手动销毁
+    let mut s = std::mem::ManuallyDrop::new(s);
+    let mut raw_data = unsafe { s.as_bytes_mut() };
+    let raw_ptr = raw_data as *mut [u8] as *mut u8;
+
+    // 用的是同一片内存空间，离开作用域时 ss 的内存区域会销毁
+    // 上面的 s 如果不改为手动销毁的话，会导致同一片内存区域销毁两次，报错
+    let ss = unsafe { String::from_raw_parts(raw_ptr, 4, 4) };
+
+    println!("String::from_raw_parts = {ss}");
+    println!("ss.ptr = {:p}, s.ptr = {:p}", ss.as_ptr(), s.as_ptr());
+
+    let mut s = String::from("H");
+    println!("s.capacity = {}", s.capacity());
+
+    // 编译器可能会推测性地多分配
+    s.reserve(10);
+    // 不会推测性地多分配
+    s.reserve_exact(10);
+    println!("s.capacity = {}", s.capacity());
+
+    let mut s = "hello, world".chars();
+    let _ = s.next();
+
+    let mut s = String::from("hello world");
+
+    println!(
+        "s.chars().find(|cr| cr == &'o') = {:?}",
+        s.chars().find(|cr| cr == &'o')
+    );
+
+    println!(
+        "s.chars().potion(|cr| cr == &'o') = {:?}",
+        s.chars().position(|cr| cr == 'o')
+    );
+
+    s.retain(|cr| cr != 'l');
+    println!("after s.retain(|cr| cr != 'l') = {s}",);
+
+    s.insert(2, 'l');
+    s.insert(3, 'l');
+    s.insert(9, 'l');
+    println!("after insert = {s}",);
+
+    s.insert_str(0, "Hi, ");
+    println!("after insert_str = {s}",);
+
+    let mut s = String::from("Hello, 世界");
+
+    println!("s.len = {}", s.len());
+    println!("s.count = {}", s.chars().count());
+
+    let ss = "Hello, 世界";
+    println!("ss.len = {}", ss.len());
+    println!("ss.count = {}", ss.chars().count());
+
+    let drain = s.drain(2..3).collect::<String>();
+    println!("darin = {drain}, s = {s}");
+
+    s.replace_range(2..3, "ll");
+    println!("replace_range = {s}");
+
+    let b = s.into_boxed_str();
+
+    println!("size_of s = {}", std::mem::size_of_val("s"));
+    println!("size_of 老 = {}", std::mem::size_of_val("老"));
+    println!(
+        "'老'.len = {}, '老'.is_char_boundary(0) = {}, '老'.is_char_boundary(2) = {}",
+        "老".len(),
+        "老".is_char_boundary(0),
+        "老".is_char_boundary(2)
+    );
+
+    println!("老.as_bytes() = {:?}", "老".as_bytes().len());
+    println!("老.ptr as *const [u8;3] = {:?}", unsafe {
+        *("老".as_ptr() as *const [u8; 4])
+    });
+
+    let mut s = String::from("hello world");
+    let ss = &s[..];
+    let ss = s.get(..).unwrap();
+    let ss = s.get_mut(..).unwrap();
+    let ss = unsafe { s.get_unchecked(..) };
+
+    let mut s = " 你好，世界 ".to_string();
+    println!("left, right = {:?}", s.split_at(7));
+    println!("s.trim() = {}", s.trim());
+
+    println!("s.contains('你') = {}", s.contains("你"));
+
+    let split = s.split("，").collect::<Vec<_>>();
+
+    println!("split = {split:?}");
+
+    s.ends_with(" ");
+    println!("s.trim_start() = {:?}", s.trim_start());
+
+    // s.match_indices(pat);
+    let ss = s.to_ascii_lowercase();
+    let ss = s.to_ascii_uppercase();
+
+    s.make_ascii_lowercase();
+    s.make_ascii_uppercase();
+
+    println!("s.repeat(5) = {}", s.repeat(5));
+}
+
+fn s_sync() {
+    unsafe {
+        STATIC_I32 = 40;
+    };
+    println!("CONST_I32 = {CONST_I32}");
+    println!("STATIC_I32 = {}", unsafe { STATIC_I32 });
+
+    // std::alloc::handle_alloc_error(std::alloc::Layout::new::<i32>());
 }
 
 fn s_array() {
@@ -1195,4 +1409,132 @@ fn s_lifetime() {
         let foo_cloned = foo.clone();
         let bar_cloned = bar.clone();
     }
+
+    let a = Box::new(105);
+    let ptr = Box::into_raw(a);
+
+    // unsafe {
+    //     let _ = Box::from_raw(ptr);
+    // };
+
+    unsafe {
+        let a = *ptr;
+    }
+
+    let a = unsafe { Box::from_raw(ptr) };
+    println!("after box from raw a = {a}");
+
+    struct MyStruct;
+    println!("size of empty struct = {}", std::mem::size_of::<MyStruct>());
+
+    let can_drop = vec![5];
+    let can_drop_ptr = can_drop.as_ptr();
+
+    println!("can_drop_ptr = {can_drop_ptr:p}");
+    println!("can_drop = {:?}", unsafe { *can_drop_ptr });
+
+    drop(can_drop);
+
+    println!("can_drop_ptr = {can_drop_ptr:p}");
+    println!("can_drop = {:?}", unsafe { *can_drop_ptr });
+
+    let basic = 0_i32;
+    let mut basic_ptr = &basic as *const i32;
+    {
+        let basic = 5_i32;
+        basic_ptr = &basic as *const i32;
+
+        println!("&basic = {:p}, basic = {}", &basic, unsafe { *basic_ptr });
+    }
+
+    println!("&basic = {:p}, basic = {}", basic_ptr, unsafe {
+        *basic_ptr
+    });
+
+    struct CanDrop(i32);
+
+    {
+        let basic = CanDrop(25_i32);
+        basic_ptr = &basic as *const CanDrop as *const i32;
+
+        println!("in block &can_drop = {:p}, can_drop = {}", &basic, unsafe {
+            *basic_ptr
+        });
+    }
+
+    println!(
+        "out block &can_drop = {:p}, can_drop = {}",
+        basic_ptr,
+        unsafe { *basic_ptr }
+    );
+
+    {
+        let basic = Box::new(35_i32);
+        basic_ptr = basic.as_ref() as *const i32;
+
+        println!("box = {basic}");
+    }
+
+    println!("box = {}", unsafe { *basic_ptr });
+
+    // struct MyStruct {}
+
+    let s = String::from("H");
+    println!("&s = {:p}", s.as_ptr());
+    let s_ptr = s.as_ptr();
+
+    std::thread::spawn(move || {
+        let a = s;
+        // not impl Send
+        // println!("s_ptr = {:p}", s_ptr);
+        println!("s in thread = {}", a);
+        println!("&s = {:p}", a.as_ptr());
+    })
+    .join();
+
+    let mut s = String::from("H");
+    let mut closure = || {
+        *(&mut s) = String::from("222");
+    };
+
+    closure();
+
+    // println!("s = {s:?}");
+    #[derive(Debug)]
+    struct MyBox(*const u8);
+
+    unsafe impl Send for MyBox {}
+    unsafe impl Sync for MyBox {}
+
+    let s = String::from("H");
+    let s_ptr = MyBox(s.as_ptr());
+
+    std::thread::spawn(move || {
+        println!("MyBox = {:?}", s_ptr);
+    })
+    .join();
+}
+
+fn s_impl_vec() {
+    // std::alloc::handle_alloc_error(std::alloc::Layout::new::<i32>());
+    // (&5 as *const i32).offset(2);
+    let layout = std::alloc::Layout::array::<i32>(1);
+    // layout.unwrap().size();
+
+    unsafe {
+        // std::alloc::realloc(ptr, layout, new_size);
+        std::alloc::alloc(layout.unwrap());
+        // std::ptr::read(dst, src);
+        // std::ptr::write(dst, src);
+        Vec::into_iter(vec![1, 2]);
+    };
+
+    let b = Box::new(32_i32);
+
+    let b_ptr = &*b as *const i32;
+    // 完全按位拷贝
+    let b_ptr_read = unsafe { std::ptr::read(b_ptr) };
+    let b_ptr_read_ptr = &b_ptr_read as *const i32;
+
+    println!("b_ptr = {b_ptr:p}, b_ptr_read = {b_ptr_read}, b_ptr_read_ptr = {b_ptr_read_ptr:p}");
 }
