@@ -418,6 +418,19 @@ fn s_sync() {
     println!("STATIC_I32 = {}", unsafe { STATIC_I32 });
 
     // std::alloc::handle_alloc_error(std::alloc::Layout::new::<i32>());
+
+    static FLAG: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+    let flag = FLAG.load(std::sync::atomic::Ordering::Relaxed);
+    let result = FLAG.compare_exchange(
+        false,
+        true,
+        std::sync::atomic::Ordering::Relaxed,
+        std::sync::atomic::Ordering::Relaxed,
+    );
+    let new_flag = FLAG.load(std::sync::atomic::Ordering::Relaxed);
+
+    println!("flag = {flag}, after CAS = {result:?}, new_flag = {new_flag}");
 }
 
 fn s_array() {
@@ -1532,8 +1545,11 @@ fn s_impl_vec() {
     let b = Box::new(32_i32);
 
     let b_ptr = &*b as *const i32;
+    // 完全按位拷贝
     let b_ptr_read = unsafe { std::ptr::read(b_ptr) };
     let b_ptr_read_ptr = &b_ptr_read as *const i32;
 
     println!("b_ptr = {b_ptr:p}, b_ptr_read = {b_ptr_read}, b_ptr_read_ptr = {b_ptr_read_ptr:p}");
+
+    println!("!0 = {}, !1 = {}", !0, !1);
 }
