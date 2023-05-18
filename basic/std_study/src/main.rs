@@ -15,7 +15,7 @@ use std::{
     num::{IntErrorKind, ParseIntError},
     ops::{Add, Deref, Div, Index, IndexMut},
     println,
-    ptr::NonNull,
+    ptr::{slice_from_raw_parts, NonNull},
     rc::Rc,
     slice::from_raw_parts,
 };
@@ -545,6 +545,29 @@ fn s_time() {
 
 fn s_collections() {
     let mut a = vec![String::from("hello")];
+
+    let mut arr = Vec::from_iter(
+        std::iter::repeat(0)
+            .take(10)
+            .enumerate()
+            .map(|(idx, i)| idx + i),
+    );
+
+    arr.splice(4..4, [11, 12, 13]);
+    arr.reverse();
+    println!("arr here is {arr:?}");
+
+    // arr.extend(iter)
+    // arr.append(other)
+
+    let ptr = arr.as_ptr();
+    println!("arr[2] is {}", unsafe { *ptr.add(2) });
+    arr.clear();
+    println!("arr[2] is {}", unsafe { *(ptr.add(2)) });
+
+    let reversed = "12345".chars().rev().collect::<String>();
+
+    println!("reversed = {reversed}");
 }
 
 fn s_array() {
