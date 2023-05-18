@@ -46,6 +46,8 @@ fn main() {
     s_slice();
     s_string();
     s_sync();
+    s_time();
+    s_collections();
 
     // 死灵书
     // s_repr();
@@ -433,6 +435,116 @@ fn s_sync() {
     std::sync::atomic::fence(std::sync::atomic::Ordering::Acquire);
 
     println!("flag = {flag}, after CAS = {result:?}, new_flag = {new_flag}");
+
+    let barrier = std::sync::Barrier::new(3);
+    let barrier = std::sync::Arc::new(barrier);
+    let mut threads = vec![];
+
+    for _ in 0..3 {
+        let barrier = barrier.clone();
+        threads.push(std::thread::spawn(move || {
+            println!("before wait!");
+            barrier.wait();
+            println!("after wait!");
+        }));
+    }
+
+    for t in threads {
+        t.join();
+    }
+
+    let a = std::sync::Arc::new((1, String::new()));
+    let b = a.clone();
+
+    std::thread::spawn(move || {
+        let a = &*b;
+        let b = &a.0;
+    });
+
+    let condvar = std::sync::Arc::new((std::sync::Mutex::new(false), std::sync::Condvar::new()));
+
+    let cloned = condvar.clone();
+    std::thread::spawn(move || {
+        let (mutex, condvar) = &*cloned;
+        *mutex.lock().unwrap() = true;
+        condvar.notify_one();
+        println!("after condvar notify_one");
+    });
+
+    let mut lock = condvar.0.lock().unwrap();
+    while *lock != true {
+        lock = condvar.1.wait(lock).unwrap();
+        println!("after condvar wait");
+    }
+}
+
+fn s_time() {
+    struct MyStruct {}
+    impl MyStruct {
+        pub const TEST: i32 = 1;
+
+        pub fn test() -> i32 {
+            Self::TEST
+        }
+    }
+
+    println!(
+        "std::time::Duration::ZERO = {:?}",
+        std::time::Duration::ZERO
+    );
+    println!("std::time::Duration::MAX = {:?}", std::time::Duration::MAX);
+
+    let new_time = std::time::Duration::new(10, 10);
+
+    println!("10s and 10ns = {:?}", new_time);
+
+    let time_from_micros = std::time::Duration::from_micros(12_345_67);
+    println!("time_from_micros, secs = {}", time_from_micros.as_secs());
+    println!(
+        "time_from_micros, millis = {}",
+        time_from_micros.subsec_millis()
+    );
+    println!(
+        "time_from_micros, micros = {}",
+        time_from_micros.subsec_micros()
+    );
+    println!(
+        "time_from_micros, nanos = {}",
+        time_from_micros.subsec_nanos()
+    );
+
+    let new_time = time_from_micros * 10;
+    println!("new time = {new_time:?}");
+
+    println!("{:?}", (1..-1).collect::<Vec<_>>());
+
+    let now = std::time::Instant::now();
+    println!("now = {:?}", now);
+
+    std::thread::sleep(std::time::Duration::from_millis(200));
+
+    let new_time = std::time::Instant::now();
+    println!(
+        "from time to new_time = {}",
+        new_time.duration_since(now).as_nanos()
+    );
+    println!(
+        "from new_time to time = {}",
+        now.duration_since(new_time).as_nanos()
+    );
+
+    println!("now.elapsed = {:?}", now.elapsed().as_nanos());
+
+    println!("new_time >= now = {}", new_time >= now);
+
+    match std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH) {
+        Ok(now) => println!("from 1970 to now = {}", now.as_millis()),
+        Err(_) => {}
+    }
+}
+
+fn s_collections() {
+    let mut a = vec![String::from("hello")];
 }
 
 fn s_array() {
