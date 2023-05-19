@@ -1,3 +1,6 @@
+#![allow(unused)]
+#![allow(unused_imports)]
+
 use std::{
     borrow::Borrow,
     cell::RefCell,
@@ -6,7 +9,7 @@ use std::{
     ops::Add,
     ptr::NonNull,
     rc::Rc,
-    sync::{Arc, Mutex, atomic::Ordering},
+    sync::{atomic::Ordering, Arc, Mutex},
     thread,
 };
 
