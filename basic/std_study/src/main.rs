@@ -10,6 +10,7 @@ use std::{
     borrow::Borrow,
     cell::RefCell,
     collections::HashMap,
+    fmt::format,
     hash::Hash,
     io::{BufRead, Read, Seek, Write},
     num::{IntErrorKind, ParseIntError},
@@ -568,6 +569,77 @@ fn s_collections() {
     let reversed = "12345".chars().rev().collect::<String>();
 
     println!("reversed = {reversed}");
+
+    let mut arr = Vec::from_iter(
+        std::iter::repeat("hello".to_string())
+            .take(10)
+            .enumerate()
+            .map(|(idx, i)| format!("{i}: {idx}")),
+    );
+
+    for item in arr.windows(3) {
+        println!("in windows(3) = {item:?}");
+    }
+
+    println!(
+        "{:?}",
+        "1 2 3 4 5"
+            .to_string()
+            .split_whitespace()
+            .collect::<Vec<_>>()
+    );
+
+    println!(
+        "{:?}",
+        "1, 2, 3, 4, 5".to_string().split(", ").collect::<Vec<_>>()
+    );
+
+    println!(
+        "{:?}",
+        [3, 10, 40, 33]
+            .split_inclusive(|item| item % 3 == 0)
+            .collect::<Vec<_>>()
+    );
+
+    println!(
+        "{:?}",
+        [10, 40, 30, 20, 60, 50]
+            .splitn(2, |item| item % 3 == 0)
+            .collect::<Vec<_>>()
+    );
+
+    println!(
+        "{:?}",
+        "@byted-blocks/arco-components@2.7.1"
+            .rsplitn(2, "@")
+            .collect::<Vec<_>>()
+    );
+
+    match "@byted-blocks/arco-components@2.7.1"
+        .rsplitn(2, "@")
+        .collect::<Vec<_>>()[..]
+    {
+        [version, name] => {}
+        _ => {}
+    }
+
+    let mut arr = vec![1, 2, 3, 4, 5];
+
+    let (left, right) = arr.split_at_mut(2);
+    left.clone_from_slice(&right[1..]);
+
+    arr.copy_within((0..2), 3);
+
+    println!("after copy_within =, {arr:?}");
+
+    let mut arr = vec![1, 2, 3, 4, 5, 6, 7];
+    let (left, right) = arr.split_at_mut(3);
+
+    left.swap_with_slice(&mut right[1..]);
+    println!("arr = {arr:?}");
+
+    println!("concat = {}", vec!["1", "1", "2"].concat());
+    println!("join(@) = {}", vec!["1", "1", "2"].join("@"));
 }
 
 fn s_array() {
