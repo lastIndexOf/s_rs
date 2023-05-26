@@ -640,6 +640,12 @@ fn s_collections() {
 
     println!("concat = {}", vec!["1", "1", "2"].concat());
     println!("join(@) = {}", vec!["1", "1", "2"].join("@"));
+
+    let mut arr = vec![1, 2, 3, 4, 5, 6, 7];
+    arr.rotate_left(3);
+    println!("arr = {arr:?}");
+    arr.rotate_right(2);
+    println!("arr = {arr:?}");
 }
 
 fn s_array() {
