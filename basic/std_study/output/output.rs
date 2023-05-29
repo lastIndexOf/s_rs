@@ -646,6 +646,8 @@ fn s_collections() {
     println!("arr = {arr:?}");
     arr.rotate_right(2);
     println!("arr = {arr:?}");
+
+    println!("4 / 3 * 3 = {}", 4 / 3 * 3);
 }
 
 fn s_array() {

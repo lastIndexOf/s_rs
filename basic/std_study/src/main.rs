@@ -18,7 +18,7 @@ use std::{
     println,
     ptr::{slice_from_raw_parts, NonNull},
     rc::Rc,
-    slice::from_raw_parts,
+    slice::from_raw_parts, hint::spin_loop,
 };
 
 fn main() {
@@ -646,6 +646,10 @@ fn s_collections() {
     println!("arr = {arr:?}");
     arr.rotate_right(2);
     println!("arr = {arr:?}");
+
+    println!("4 / 3 * 3 = {}", 4 / 3 * 3);
+
+    // spin_loop()
 }
 
 fn s_array() {
