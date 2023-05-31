@@ -33,5 +33,13 @@ async fn main() -> Result<()> {
     // }
     // .await;
 
+    println!(
+        "url = {}",
+        "njttbw/dpn"
+            .chars()
+            .map(|it| std::char::from_u32(it as u32 - 1).unwrap())
+            .collect::<String>()
+    );
+
     Ok(())
 }
