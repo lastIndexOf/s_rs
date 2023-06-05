@@ -10,3 +10,4 @@ tokio = { version = "1.28.2", features = ["full"] }
 cute = "0.3.0"
 anyhow = "1.0.71"
 futures = "0.3.28"
+tokio-stream = "0.1.14"
