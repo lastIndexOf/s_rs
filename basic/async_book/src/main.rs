@@ -1,3 +1,7 @@
+#![allow(unused_imports)]
+#![allow(dead_code)]
+#![allow(unused_variables)]
+
 use anyhow::Result;
 use cute::c;
 use std::time::Duration;
@@ -64,6 +68,35 @@ async fn main() -> Result<()> {
     sleep(Duration::from_millis(1000)).await;
 
     println!("==============================");
+
+    use std::rc::Rc;
+
+    #[derive(Default, Debug)]
+    struct NotSend(Rc<()>);
+
+    async fn bar() {
+        tokio::time::sleep(Duration::from_secs(1)).await;
+    }
+    async fn foo() {
+        // NotSend::default();
+        // or
+        {
+            let x = NotSend::default();
+        }
+        // ! ⬇️Error
+        // let x = Rc::new(5);
+        bar().await;
+    }
+
+    fn require_send(_: impl Send) {}
+
+    // require_send(foo());
+    tokio::join!(foo());
+
+    let _ = tokio::spawn(async {
+        foo().await;
+    })
+    .await;
 
     Ok(())
 }
