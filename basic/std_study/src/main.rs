@@ -12,13 +12,14 @@ use std::{
     collections::HashMap,
     fmt::format,
     hash::Hash,
+    hint::spin_loop,
     io::{BufRead, Read, Seek, Write},
     num::{IntErrorKind, ParseIntError},
     ops::{Add, Deref, Div, Index, IndexMut},
     println,
     ptr::{slice_from_raw_parts, NonNull},
     rc::Rc,
-    slice::from_raw_parts, hint::spin_loop,
+    slice::from_raw_parts,
 };
 
 fn main() {
@@ -650,6 +651,33 @@ fn s_collections() {
     println!("4 / 3 * 3 = {}", 4 / 3 * 3);
 
     // spin_loop()
+
+    struct Person {
+        name: String,
+        age: String,
+    }
+
+    let a = {
+        let zfk = Person {
+            name: "zhengfankai".to_string(),
+            age: "26".to_string(),
+        };
+
+        let mut map = std::collections::HashMap::new();
+        map.insert("k".to_string(), "v".to_string());
+
+        if map.contains_key("k") {}
+
+        // !Error
+        // let a = map["k"];
+        let a = map.entry("k".to_string()).or_default();
+        let a = "1".to_string() + &map["k"];
+
+        let a = zfk.name;
+        a
+    };
+
+    let map = std::collections::HashMap::from([("zfk", 26), ("dmf", 28)]);
 }
 
 fn s_array() {
