@@ -668,8 +668,6 @@ fn s_collections() {
 
         if map.contains_key("k") {}
 
-        // !Error
-        // let a = map["k"];
         let a = map.entry("k".to_string()).or_default();
         let a = "1".to_string() + &map["k"];
 
@@ -678,6 +676,9 @@ fn s_collections() {
     };
 
     let map = std::collections::HashMap::from([("zfk", 26), ("dmf", 28)]);
+
+    println!("map = {map:#?}");
+    println!("map.keys = {:#?}", map.keys().collect::<Vec<_>>())
 }
 
 fn s_array() {

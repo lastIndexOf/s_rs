@@ -3,11 +3,12 @@ use std::{error::Error, fs, ops::Deref};
 
 use futures::{executor::block_on, future::join_all, join, select, try_join, FutureExt};
 
-use crate::{bro_2::print_in_bro_2, lifetime::test_lifetime};
+use crate::{bro_2::print_in_bro_2, lifetime::test_lifetime, log::log_call};
 
 mod bro;
 mod bro_2;
 mod lifetime;
+mod log;
 
 #[derive(Debug)]
 struct Foo;
@@ -63,7 +64,9 @@ fn main() {
             // complete => println!("in select complete"),
             // default => panic!()
         }
-    })
+    });
+
+    let _ = log_call();
 }
 
 fn self_ref() {

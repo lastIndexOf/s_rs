@@ -1,0 +1,32 @@
+2023-06-08T17:15:41.636493Z  INFO call_return_err: rust_bible::log: going to log error
+2023-06-08T17:15:41.636898Z ERROR call_return_err: rust_bible::log: error err=
+   0: [91mSomething went wrong[0m
+
+Location:
+   [35mbasic/rust_bible/src/log.rs[0m:[35m9[0m
+
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ SPANTRACE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   0: [91mrust_bible::log[0m[91m::[0m[91mreturn_err[0m
+      at [35mbasic/rust_bible/src/log.rs[0m:[35m7[0m
+   1: [91mrust_bible::log[0m[91m::[0m[91mcall_return_err[0m
+      at [35mbasic/rust_bible/src/log.rs[0m:[35m12[0m
+
+Backtrace omitted. Run with RUST_BACKTRACE=1 environment variable to display it.
+Run with RUST_BACKTRACE=full to include source snippets.
+2023-06-08T17:24:58.610454Z  INFO call_return_err: rust_bible::log: going to log error
+2023-06-08T17:24:58.610856Z ERROR call_return_err: rust_bible::log: in call return err 
+   0: [91mSomething went wrong[0m
+
+Location:
+   [35mbasic/rust_bible/src/log.rs[0m:[35m9[0m
+
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ SPANTRACE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   0: [91mrust_bible::log[0m[91m::[0m[91mreturn_err[0m
+      at [35mbasic/rust_bible/src/log.rs[0m:[35m7[0m
+   1: [91mrust_bible::log[0m[91m::[0m[91mcall_return_err[0m
+      at [35mbasic/rust_bible/src/log.rs[0m:[35m12[0m
+
+Backtrace omitted. Run with RUST_BACKTRACE=1 environment variable to display it.
+Run with RUST_BACKTRACE=full to include source snippets. 
