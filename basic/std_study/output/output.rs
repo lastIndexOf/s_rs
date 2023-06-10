@@ -668,8 +668,6 @@ fn s_collections() {
 
         if map.contains_key("k") {}
 
-        // !Error
-        // let a = map["k"];
         let a = map.entry("k".to_string()).or_default();
         let a = "1".to_string() + &map["k"];
 
@@ -680,7 +678,81 @@ fn s_collections() {
     let map = std::collections::HashMap::from([("zfk", 26), ("dmf", 28)]);
 
     println!("map = {map:#?}");
-    println!("map.keys = {:#?}", map.keys().collect::<Vec<_>>())
+    println!("map.keys = {:#?}", map.keys().collect::<Vec<_>>());
+
+    #[derive(Hash, Eq, PartialEq, Debug)]
+    struct Viking {
+        name: String,
+        power: usize,
+    }
+
+    let mut vikings = std::collections::HashSet::new();
+
+    vikings.insert(Viking {
+        name: "Einar".to_string(),
+        power: 9,
+    });
+    vikings.insert(Viking {
+        name: "Einar".to_string(),
+        power: 9,
+    });
+    vikings.insert(Viking {
+        name: "Olaf".to_string(),
+        power: 4,
+    });
+    vikings.insert(Viking {
+        name: "Harald".to_string(),
+        power: 8,
+    });
+
+    // Use derived implementation to print the vikings.
+    for x in &vikings {
+        println!("{x:?}");
+    }
+
+    let mut set = std::collections::HashSet::from([1, 2, 3, 4, 5]);
+
+    for (i, item) in set.drain().enumerate() {
+        println!("item = {item}");
+
+        if i == 3 {
+            break;
+        }
+    }
+
+    println!("set is empty = {}", set.is_empty());
+
+    let set_a = std::collections::HashSet::from([3, 4, 5]);
+    let set_b = std::collections::HashSet::from([2, 3, 4]);
+
+    let mut empty_set = std::collections::HashSet::<i32>::new();
+
+    println!("set_a 是否与 set_b 相交 {:?}", !set_a.is_disjoint(&set_b));
+
+    println!("set_a - set_b = {:?}", set_a.difference(&set_b));
+    println!(
+        "(set_a - set_b) & (set_b - set_a) = {:?}",
+        set_a.symmetric_difference(&set_b)
+    );
+    println!("set_a && set_b = {:?}", set_a.intersection(&set_b));
+    println!("set_a + set_b = {:?}", set_a.union(&set_b));
+
+    println!(
+        "empty_set is subset for set_a = {}",
+        empty_set.is_subset(&set_a)
+    );
+    println!(
+        "set_a is superset for empty_set = {}",
+        set_a.is_superset(&empty_set)
+    );
+
+    empty_set.insert(54);
+
+    println!(
+        "take 54 = {}, after take is empty = {}",
+        empty_set.take(&54).unwrap(),
+        empty_set.is_empty()
+    );
 }
 
 fn s_array() {
