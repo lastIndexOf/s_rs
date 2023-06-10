@@ -1,3 +1,3 @@
 [workspace]
-members = ["./basic/*", "./ffi", "./wasm", "./rust-for-c"]
+members = ["./basic/*", "./crates/*", "./ffi", "./wasm", "./rust-for-c"]
 exclude = ["./basic/add_workspace"]
