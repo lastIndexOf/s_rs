@@ -1129,8 +1129,20 @@ name = "s-request"
 version = "0.1.0"
 
 [[package]]
+name = "s-server"
+version = "0.1.0"
+dependencies = [
+ "tokio",
+ "tokio-stream",
+]
+
+[[package]]
 name = "s-tokio"
 version = "0.1.0"
+dependencies = [
+ "tokio",
+ "tokio-stream",
+]
 
 [[package]]
 name = "scopeguard"
