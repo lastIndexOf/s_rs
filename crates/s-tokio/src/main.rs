@@ -94,4 +94,17 @@ async fn main() {
     while let Some(val) = itr.next().await {
         println!("val = {val}");
     }
+
+    loop {
+        tokio::select! {
+            val = tokio::signal::ctrl_c() => {
+                println!("Exit with ctrl c: {val:?}");
+                std::process::exit(1);
+            },
+
+            _ = tokio::time::sleep(Duration::from_millis(1000)) => {
+                println!("Sleep for 1000ms");
+            }
+        }
+    }
 }
