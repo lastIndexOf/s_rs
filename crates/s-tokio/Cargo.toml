@@ -9,8 +9,4 @@ edition = "2021"
 tokio = { version = "1.28.2", features = ["full"] }
 tokio-stream = "0.1.14"
 
-[[bin]]
-name = "s-tokio"
 
-[[bin]]
-name = "sync"
