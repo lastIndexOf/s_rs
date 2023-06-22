@@ -753,6 +753,10 @@ fn s_collections() {
         empty_set.take(&54).unwrap(),
         empty_set.is_empty()
     );
+
+    let map = std::collections::BTreeMap::from([("name", "zhengfankai")]);
+
+    println!("map = {map:?}");
 }
 
 fn s_array() {
