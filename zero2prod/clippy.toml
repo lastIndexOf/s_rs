@@ -1,0 +1,16 @@
+# 设置 Clippy 的 lint 级别
+[lints]
+# 将所有 lint 的级别设置为 "warn"
+warnings = "clippy::all"
+
+# 禁用特定的 lint
+# [lints.some_lint_name]
+# 将 "some_lint_name" 的级别设置为 "off"
+# level = "off"
+
+# 配置 Clippy 的其他选项
+[options]
+# 启用 Clippy 的所有警告
+# warn = true
+# 设置 Clippy 的输出格式为 "short"
+# format = "short"
