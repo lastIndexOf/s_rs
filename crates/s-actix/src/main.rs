@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{io::ErrorKind, time::Duration};
 
 use actix_web::{
     get, guard, post,
@@ -20,6 +20,11 @@ struct UserQuery {
 #[get("/")]
 async fn hello() -> impl Responder {
     HttpResponse::Ok().body("Hello world!")
+}
+
+#[post("/error")]
+async fn post_error() -> Result<impl Responder, std::io::Error> {
+    Err::<String, std::io::Error>(std::io::Error::new(ErrorKind::AddrInUse, "ss"))
 }
 
 #[post("/echo")]
@@ -57,6 +62,9 @@ async fn main() -> std::io::Result<()> {
             .service(hello)
             .service(echo)
             .service(gf_handler)
+            .service(post_error)
+            .service(web::resource("/test/resource").route(web::route().to(manual_hello)))
+            .service(web::scope("/test").guard(guard::Post()).service(echo))
             .route("/hey", web::get().to(manual_hello))
     })
     .bind("0.0.0.0:8001")?
