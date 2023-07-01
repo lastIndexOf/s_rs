@@ -3043,6 +3043,14 @@ dependencies = [
 [[package]]
 name = "zero2prod"
 version = "0.1.0"
+dependencies = [
+ "actix-web",
+ "anyhow",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tokio",
+]
 
 [[package]]
 name = "zstd"

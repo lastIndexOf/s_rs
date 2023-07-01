@@ -676,7 +676,6 @@ fn s_collections() {
     };
 
     let map = std::collections::HashMap::from([("zfk", 26), ("dmf", 28)]);
-
     println!("map = {map:#?}");
     println!("map.keys = {:#?}", map.keys().collect::<Vec<_>>());
 
@@ -768,6 +767,8 @@ fn s_array() {
     println!("from ref {} to {:?}", hello_str, arr_hello);
 
     assert_eq!(hello_str, arr_hello[0]);
+
+    // let mut deque = std::collections::VecDeque::new();
 }
 
 fn s_ascii() {
