@@ -756,6 +756,28 @@ fn s_collections() {
     let map = std::collections::BTreeMap::from([("name", "zhengfankai")]);
 
     println!("map = {map:?}");
+
+    let v = vec![1, 2, 3, 4, 5];
+    let mut iter = v.iter().peekable();
+
+    while let Some(item) = iter.next() {
+        println!("item = {item}, next = {:?}", iter.peek());
+    }
+
+    let mut heap = std::collections::BinaryHeap::from([1, 2, 5]);
+    for item in heap.iter() {
+        println!("heap item = {item}");
+    }
+
+    println!("heap.pop() = {:?}", heap.pop());
+    println!("heap.pop() = {:?}", heap.pop());
+    println!("heap.pop() = {:?}", heap.pop());
+
+    let mut heap = std::collections::BinaryHeap::from([1, 2, 5]);
+    *heap.peek_mut().unwrap() = 0;
+    for item in heap.iter() {
+        println!("after max = 0, heap item = {item}");
+    }
 }
 
 fn s_array() {
