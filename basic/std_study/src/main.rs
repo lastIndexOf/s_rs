@@ -23,6 +23,11 @@ use std::{
 };
 
 fn main() {
+    // 死灵书
+    // s_repr();
+    s_lifetime();
+    s_impl_vec();
+
     s_array();
     s_ascii();
     s_borrow();
@@ -50,11 +55,8 @@ fn main() {
     s_sync();
     s_time();
     s_collections();
-
-    // 死灵书
-    // s_repr();
-    s_lifetime();
-    s_impl_vec();
+    s_pin();
+    s_thread();
 }
 
 fn s_ptr() {
@@ -778,6 +780,27 @@ fn s_collections() {
     for item in heap.iter() {
         println!("after max = 0, heap item = {item}");
     }
+}
+
+fn s_pin() {
+    // todo
+}
+
+fn s_thread() {
+    let current = std::thread::current();
+
+    println!("current thread = {current:?}");
+
+    let child = std::thread::Builder::new()
+        .name(String::from("sleep"))
+        .spawn(move || {})
+        .unwrap();
+
+    println!("child thread = {:?}", child.thread());
+
+    let ava_para = std::thread::available_parallelism().unwrap();
+
+    println!("available_parallelism = {ava_para}");
 }
 
 fn s_array() {
