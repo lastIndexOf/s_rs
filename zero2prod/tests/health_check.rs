@@ -2,7 +2,8 @@ use std::net::TcpListener;
 
 use anyhow::Result;
 use reqwest::StatusCode;
-use zero2prod::run;
+use sqlx::{query, Connection, PgConnection};
+use zero2prod::{configuration::get_configuration, startup::run};
 
 /// 启动一个测试的 http server
 /// 返回格式: xxx.x.x.x:port
@@ -33,6 +34,10 @@ async fn health_check_works() -> Result<()> {
 async fn subscriptions_return_200_when_date_validate() -> Result<()> {
     let addr = spawn_app()?;
 
+    let settings = get_configuration()?;
+    let connection_string = settings.postgres.connection_string();
+    let mut connection = PgConnection::connect(&connection_string).await?;
+
     let body = "name=kgaikj2cu&email=kgaikj2cu@icloud.com";
     let res = reqwest::Client::new()
         .post(format!("http://{}/subscriptions", addr))
@@ -42,6 +47,13 @@ async fn subscriptions_return_200_when_date_validate() -> Result<()> {
         .await?;
 
     assert_eq!(res.status().as_u16(), StatusCode::OK);
+
+    let saved = query!("SELECT email, name FROM subscriptions")
+        .fetch_one(&mut connection)
+        .await?;
+
+    assert_eq!(saved.name, "zhengfankai");
+    assert_eq!(saved.email, "kgaikj2cu@icloud.com");
 
     Ok(())
 }

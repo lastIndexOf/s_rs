@@ -1,8 +1,9 @@
 use std::net::TcpListener;
 
-use zero2prod::run;
+use zero2prod::{configuration::get_configuration, startup::run};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    run(TcpListener::bind("0.0.0.0:8083")?)?.await
+    let settings = get_configuration().expect("get configuration error");
+    run(TcpListener::bind(format!("0.0.0.0:{}", settings.port))?)?.await
 }
