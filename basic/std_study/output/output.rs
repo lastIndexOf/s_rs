@@ -801,6 +801,74 @@ fn s_thread() {
     let ava_para = std::thread::available_parallelism().unwrap();
 
     println!("available_parallelism = {ava_para}");
+
+    struct SomeStruct;
+
+    impl Drop for SomeStruct {
+        fn drop(&mut self) {
+            if std::thread::panicking() {
+                println!("dropped while unwinding");
+            } else {
+                println!("dropped while not unwinding");
+            }
+        }
+    }
+
+    {
+        print!("a: ");
+        let a = SomeStruct;
+    }
+
+    // {
+    //     print!("b: ");
+    //     let b = SomeStruct;
+    //     panic!()
+    // }
+
+    let flag = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let flag_cloned = flag.clone();
+
+    let handle = std::thread::spawn(move || {
+        println!("in thread before parking");
+
+        while !flag_cloned.load(std::sync::atomic::Ordering::Acquire) {
+            println!("in thread before parking in loop");
+
+            // std::thread::park_timeout(std::time::Duration::from_secs(1));
+            std::thread::park();
+
+            println!("in thread after parking in loop");
+        }
+
+        println!("in thread after parking");
+    });
+
+    std::thread::sleep(std::time::Duration::from_secs(2));
+
+    flag.store(true, std::sync::atomic::Ordering::Release);
+    handle.thread().unpark();
+
+    println!("after unparking");
+
+    handle.join();
+
+    let mut arr = vec![1, 2, 3];
+
+    std::thread::scope(|s| {
+        s.spawn(|| {
+            std::thread::sleep(std::time::Duration::from_secs(2));
+            arr.push(4);
+            println!("in scope first spawned thread, arr = {arr:?}");
+        });
+
+        s.spawn(|| {
+            std::thread::sleep(std::time::Duration::from_secs(2));
+            // println!("in scope spawned thread, arr = {arr:?}");
+            println!("in scope second spawned thread");
+        });
+    });
+
+    println!("arr = {arr:?}");
 }
 
 fn s_array() {
