@@ -3842,6 +3842,7 @@ dependencies = [
  "anyhow",
  "chrono",
  "config",
+ "futures",
  "reqwest",
  "serde",
  "serde_json",

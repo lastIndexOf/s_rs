@@ -22,6 +22,7 @@ anyhow = "1.0.71"
 config = "0.13.3"
 uuid = { version = "1.4.0", features = ["serde", "v4"] }
 chrono = "0.4.26"
+futures = "0.3.28"
 
 [dev-dependencies]
 reqwest = "0.11.18"
